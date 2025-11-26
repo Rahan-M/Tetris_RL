@@ -59,12 +59,12 @@ class TetrisEngine:
             return True
         
         board_section=self.board[y:y+piece_h, x:x+piece_w]
-        if(matrix & board_section).any():
+        if(matrix & board_section).any(): # checks if overlap exists at any point
+            # this is equivalent to matrix[0][0] and board[0][0] or matrix[0][1] and board[0][1] or ... matrix[2][1] and board[2][1] so on
             return True
         
         return False
         
-
     def spawn_piece(self):
         shape_key = np.random.choice(list(TETROMINOES.keys()))
         rotations = TETROMINOES[shape_key]
@@ -138,18 +138,20 @@ class TetrisEngine:
 
         # Optimized: Vectorized update using OR operator (add 1s to board)
         # We slice board[y:y+h, x:x+w] and OR it with the piece matrix
-        self.board[y:y+h, x:x+w] |= matrix
+        self.board[y:y+h, x:x+w] |= matrix # same as += or -=
 
         return self.clear_lines()
     
     def clear_lines(self):
         # Check which rows are all ones
-        full_rows = np.all(self.board == 1, axis=1)
+        full_rows = np.all(self.board == 1, axis=1) # gives one output per row
+        # output would be something like [False, False, True, False, True, ...]
         lines_cleared = np.sum(full_rows)
+        # number of true values is full rows
 
-        if lines_cleared > 0:
+        if lines_cleared > 0: # if no lines are cleared no change
             # Keep only rows that are NOT full
-            non_full_board = self.board[~full_rows]
+            non_full_board = self.board[~full_rows] 
             # Pad with zeros on top
             padding = np.zeros((lines_cleared, BOARD_WIDTH), dtype=int)
             self.board = np.vstack((padding, non_full_board))
@@ -192,7 +194,7 @@ class TetrisEngine:
             
             # Look at the segment of the column from the first block down to the bottom
             # Any 0 in this segment is a hole.
-            column_segment = self.board[BOARD_HEIGHT-heights[x]:, x]
+            column_segment = self.board[BOARD_HEIGHT-heights[x]:, x] # sekects column with index x and the rows from the first 1 to end
             holes += np.count_nonzero(column_segment == 0)
 
         return np.array([aggregate_height, holes, bumpiness])
