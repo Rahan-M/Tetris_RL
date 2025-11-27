@@ -181,16 +181,16 @@ class TetrisGymEnv(gym.Env): # it inherits from gym.Env so we must implement __i
         return float(reward)
     
     def render(self, mode:str="human"):
-        board=self._board_with_piece
+        board=self._board_with_piece()
         
         print("-"*BOARD_WIDTH)
         print("\n")
         for row in board:
             for entry in row:
                 if entry==0:
-                    print("# ")
+                    print("# ", end="")
                 else:
-                    print(". ")
+                    print(". ", end="")
             print("\n")
         print("-"*BOARD_WIDTH)
         print("\n")
