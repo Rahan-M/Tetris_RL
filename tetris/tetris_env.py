@@ -107,7 +107,7 @@ class TetrisGymEnv(gym.Env): # it inherits from gym.Env so we must implement __i
             raise ValueError("Unknown action")
 
         reward=self._compute_reward(lines_cleared, action)
-        obs=self._get_obs
+        obs=self._get_obs()
         done=not alive
 
         self.last_info = {"alive": alive, "lines_cleared": int(lines_cleared)}
