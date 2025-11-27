@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-class QNetwork(nn.module):
+class QNetwork(nn.Module):
     """
         a simple mlp that maps observation to q values for each action
         input dim: 3, here for the manual training we are going to take 3 dimensions, the heuristics to be exact
@@ -12,7 +12,7 @@ class QNetwork(nn.module):
         super(QNetwork, self).__init__()
         
         # define a single two layer mlp
-        self.network=nn.sequential(
+        self.network=nn.Sequential(
             nn.Linear(input_dim, 64), # take the 3 heuristics and expand into 64 neurons
             nn.ReLU(), # Nonlinear activation so the network can learn complex patterns.
             nn.Linear(64,64),

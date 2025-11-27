@@ -3,7 +3,7 @@ from gymnasium import spaces
 import numpy as np
 from typing import Tuple, Dict, Any
 
-from tetris_engine import TetrisEngine, BOARD_HEIGHT, BOARD_WIDTH
+from tetris.tetris_engine import TetrisEngine, BOARD_HEIGHT, BOARD_WIDTH
 
 class TetrisGymEnv(gym.Env): # it inherits from gym.Env so we must implement __init__ reset and step, optaionally render and close as well
     metadata={"render.modes": ["human"]}

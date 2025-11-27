@@ -27,7 +27,7 @@ class ReplayBuffer:
         Return a random batch of transitons
         """
         batch=random.sample(self.buffer, batch_size)
-        states, actions, rewards, next_states, dones = map(np.array(), zip(*batch))
+        states, actions, rewards, next_states, dones = map(np.array, zip(*batch))
         return states, actions, rewards, next_states, dones
     
 # states      → np.ndarray of shape (batch, obs_dim)
