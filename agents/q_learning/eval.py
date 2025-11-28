@@ -19,6 +19,7 @@ def evaluate(episodes=5):
         total_reward = 0
         total_lines = 0
 
+        print(f"Starting episode {ep}")
         while not done:
             state_tensor = torch.tensor(state, dtype=torch.float32).unsqueeze(0)
             with torch.no_grad():
@@ -28,8 +29,9 @@ def evaluate(episodes=5):
             next_state, reward, done, info = env.step(action)
 
             total_reward += reward
+            print(f"Action {action} total reward {total_reward}")
             total_lines += info.get("lines_cleared", 0)
-
+            # print(state)
             state = next_state
 
         print(f"Episode {ep+1}: Reward={total_reward:.3f}, Lines={total_lines}")

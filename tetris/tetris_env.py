@@ -36,7 +36,13 @@ class TetrisGymEnv(gym.Env): # it inherits from gym.Env so we must implement __i
         max_holes = BOARD_HEIGHT*BOARD_WIDTH # max value for number of holes
         max_bump = BOARD_HEIGHT*BOARD_WIDTH # A value greater than max value of bumpiness
 
-        if observation_type=="heuristics":
+        # --- BOARD (2 channels: static board, current piece) ---
+        board_shape = (2, BOARD_HEIGHT, BOARD_WIDTH)
+                
+        # --- HEURISTICS (3 floats) ---
+        heuristics_shape = (3,)
+
+        if observation_type=="heuristics": # Q LEARNING
             low=np.array([0.0,0.0,0.0], dtype=np.float32)
             high=np.array([max_agg, max_holes, max_bump], dtype=np.float32)
 
@@ -48,24 +54,18 @@ class TetrisGymEnv(gym.Env): # it inherits from gym.Env so we must implement __i
         elif observation_type=="board":
             # Board is 20x10; we'll send it as float32 0/1
             self.observation_space = spaces.Box(
-                low=0.0, high=1.0, shape=(BOARD_HEIGHT, BOARD_WIDTH), dtype=np.float32
+                low=0.0, high=1.0, shape=board_shape, dtype=np.float32
             )
             # spaces.Box(low=0.0, high=1.0, shape=(20,10), dtype=float32)
 
-        else:  # board_and_heuristics
+        else:  # board_and_heuristics DQN_SB3
             # Flattened board + 3 heuristics
+            # we always normalize
             board_shape = BOARD_HEIGHT * BOARD_WIDTH
-            if self.normalize:
-                low_board = np.zeros(board_shape + 3, dtype=np.float32) # a zero vector of size 203
-                high_board = np.ones(board_shape + 3, dtype=np.float32) # a vector contianing all 1s of size 203
-                self.observation_space = spaces.Box(low=low_board, high=high_board, dtype=np.float32)
-            else:
-                low = np.zeros(board_shape + 3, dtype=np.float32)
-                high = np.concatenate([
-                    np.ones(board_shape, dtype=np.float32) * 1.0,
-                    np.array([max_agg, max_holes, max_bump], dtype=np.float32)
-                ])
-                self.observation_space = spaces.Box(low=low, high=high, dtype=np.float32)
+            self.observation_space=spaces.Dict({
+                "board": spaces.Box(low=0, high=1, shape=(2,20,10), dtype=np.float32),
+                "features": spaces.Box(low=0, high=1, shape=(3,), dtype=np.float32)
+            })
         
         self.last_info={} # This is just for debugging — Gym allows returning metadata.
         self.reset() # This initializes the board and spawns the first piece. Makes environment valid immediately
@@ -106,7 +106,7 @@ class TetrisGymEnv(gym.Env): # it inherits from gym.Env so we must implement __i
         else:
             raise ValueError("Unknown action")
 
-        reward=self._compute_reward(lines_cleared, action)
+        reward=self._compute_reward(lines_cleared, alive)
         obs=self._get_obs()
         done=not alive
 
@@ -125,20 +125,52 @@ class TetrisGymEnv(gym.Env): # it inherits from gym.Env so we must implement __i
                 heur=self._normalize_heuristics(heur)
             return heur
 
-        elif self.observation_type=="board_and_heuristics":
+        elif self.observation_type=="board":
             board_with_piece=self._board_with_piece()
             return board_with_piece.astype(np.float32)
-        else:
-            board_with_piece=self._board_with_piece().flatten().astype(np.float32)
+        else: # board + heuristics
+            board_obs = self._get_board_obs()
             heur=self.engine.get_heuristics().astype(np.float32)
-            if self.normalize:
-                heur=self._normalize_heuristics(heur)
-            return np.concatenate([board_with_piece, heur], axis=1)
+            heur=self._normalize_heuristics(heur)
+            return {
+                "board": board_obs,
+                "features": heur
+            }
         
+    def _get_board_obs(self):
+        board=self.engine.board.copy()
+        piece_channel=np.zeros_like(board)
+
+        mat=self.engine.get_current_matrix()
+        h, w=mat.shape
+        x, y=self.engine.piece_x, self.engine.piece_y
+        # board indexing from x0, y0 to x1, y1 (opp corners of a rectangle)
+        x0=max(0, x)
+        y0=max(0, y)
+
+        x1=min(BOARD_WIDTH, x+w)
+        y1=min(BOARD_HEIGHT, y+h)
+        # we consider invalid states because when the game fails, the piece maybe partially out of bounds
+        # we have to still train the agent on this data
+
+        # board indexing from mat_x0, mat_y0 to mat_x1, mat_y1 (opp corners of a rectangle)
+        mat_x0=x0-x
+        mat_y0=y0-y
+
+        mat_x1=mat_x0 + x1-x0
+        mat_y1=mat_y0 + y1-y0
+
+        if y0<y1 and x0<x1: 
+            piece_channel[y0:y1, x0:x1]|= mat[mat_y0:mat_y1, mat_x0:mat_x1]
+        
+        stacked = np.stack([board, piece_channel], axis=0)
+
+        return stacked
+
     def _normalize_heuristics(self, heur:np.ndarray) -> np.ndarray:
         max_agg = BOARD_HEIGHT*BOARD_WIDTH # max value for aggregate height
-        max_holes = BOARD_HEIGHT*BOARD_WIDTH # max value for number of holes
-        max_bump = BOARD_HEIGHT*BOARD_WIDTH # A value greater than max value of bumpiness
+        max_holes = BOARD_HEIGHT*BOARD_WIDTH/2 # max value for number of holes
+        max_bump = BOARD_HEIGHT*BOARD_WIDTH # A vapiece_wo_board=self._board_with_piece().flatten().astype(np.float32)23lue greater than max value of bumpiness
 
         heur=np.array([heur[0]/max_agg, heur[1]/max_holes, heur[2]/max_bump], dtype=np.float32)
         return heur

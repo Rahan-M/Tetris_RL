@@ -2,8 +2,6 @@ import torch, random
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
-from collections import deque
-
 from tetris.tetris_env import TetrisGymEnv
 from agents.q_learning.q_network import QNetwork
 from agents.q_learning.replay_buffer import ReplayBuffer
