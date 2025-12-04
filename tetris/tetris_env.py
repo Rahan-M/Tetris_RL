@@ -120,7 +120,6 @@ class TetrisGymEnv(gym.Env): # it inherits from gym.Env so we must implement __i
         self.current_steps+=1
 
         new_heur=self.engine.get_heuristics()
-        reward=self._compute_reward(lines_cleared, alive)
 
         if action == 3:
             reward = self._compute_reward(lines_cleared, old_heur, new_heur, alive)
