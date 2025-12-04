@@ -21,3 +21,5 @@ We also use 3 heuristics:
 3. Holes : Empty spaces with filled blocks above them, the fewer the better
 
 We calculate bumpiness by adding the sum of absolute differences between two adjacent columns, 1&2, 2&3, 3&4 so on
+
+We track number of steps and stop at 500 because an intermediate model might cause an infinite loop otherwise by never using hard drop

@@ -11,10 +11,13 @@ class TetrisGymEnv(gym.Env): # it inherits from gym.Env so we must implement __i
     def __init__(
         self,
         observation_type: str="heuristics", # Controls what state the agent receives 
-        step_penalty: float=-0.01, # a small negative reward for every action to prevent infinite random moves
-        lines_cleared_reward: float = 1.0, 
+        lines_cleared_reward: float = 10.0, 
         death_penalty: float=-10.0,
-        normalize: bool=True # whether to scale heuristics to [0, 1]
+        normalize: bool=True, # whether to scale heuristics to [0, 1]
+        height_weight = -0.10,
+        hole_weight = -0.30,
+        bump_weight = -0.02,
+
     ):
         super().__init__() # run parent class's init before continuing
         assert observation_type in ("heuristics", "board", "board_and_heuristics"), \
@@ -24,10 +27,14 @@ class TetrisGymEnv(gym.Env): # it inherits from gym.Env so we must implement __i
 
         self.engine = TetrisEngine()
         self.observation_type = observation_type
-        self.step_penalty = step_penalty
         self.lines_cleared_reward = lines_cleared_reward
         self.death_penalty = death_penalty
+        self.height_weight = height_weight
+        self.hole_weight = hole_weight
+        self.bump_weight = bump_weight
         self.normalize = normalize
+        self.max_steps = 500
+        self.current_steps = 0
 
         # action space: 4 discrete actions
         self.action_space = spaces.Discrete(4)
@@ -70,15 +77,17 @@ class TetrisGymEnv(gym.Env): # it inherits from gym.Env so we must implement __i
         self.last_info={} # This is just for debugging — Gym allows returning metadata.
         self.reset() # This initializes the board and spawns the first piece. Makes environment valid immediately
 
-    def reset(self, *, seed:int =None, return_info:bool = False, options: Dict=None):
+    def reset(self, seed=None, options=None):
+        super().reset(seed=seed)
         self.engine.reset_board()
-        alive=self.engine.spawn_piece()
-        obs=self._get_obs() # the underscore in the beginning indicates the function is a private method, just a convention
+        alive = self.engine.spawn_piece()
+        self.current_steps=0
+        obs = self._get_obs()
+        info = {"alive": alive, "lines_cleared": 0}
 
-        self.last_info={"alive":alive, "lines cleared":0}
-        if return_info:
-            return obs, self.last_info
-        return obs
+        return obs, info
+
+
     
     def step(self, action: int) -> Tuple[np.ndarray, float, bool, dict]:
         """
@@ -91,7 +100,9 @@ class TetrisGymEnv(gym.Env): # it inherits from gym.Env so we must implement __i
         """
 
         assert self.action_space.contains(action), f"Invalid action {action}"
-       
+
+        old_heur=self.engine.get_heuristics()
+
         lines_cleared=0
         alive=True
 
@@ -105,15 +116,25 @@ class TetrisGymEnv(gym.Env): # it inherits from gym.Env so we must implement __i
             lines_cleared, alive = self.engine.hard_drop()
         else:
             raise ValueError("Unknown action")
+        
+        self.current_steps+=1
 
+        new_heur=self.engine.get_heuristics()
         reward=self._compute_reward(lines_cleared, alive)
+
+        if action == 3:
+            reward = self._compute_reward(lines_cleared, old_heur, new_heur, alive)
+        else:
+            reward = 0.0
+
         obs=self._get_obs()
-        done=not alive
+        terminated = not alive
+        truncated = self.current_steps >= self.max_steps   # no time limit
 
         self.last_info = {"alive": alive, "lines_cleared": int(lines_cleared)}
         info = self.last_info.copy()
 
-        return obs, float(reward), bool(done), info
+        return obs, float(reward), terminated, truncated, info
     
     def _get_obs(self) -> np.ndarray:
         """
@@ -133,8 +154,8 @@ class TetrisGymEnv(gym.Env): # it inherits from gym.Env so we must implement __i
             heur=self.engine.get_heuristics().astype(np.float32)
             heur=self._normalize_heuristics(heur)
             return {
-                "board": board_obs,
-                "features": heur
+                "board": board_obs.astype(np.float32),
+                "features": heur.astype(np.float32)
             }
         
     def _get_board_obs(self):
@@ -165,7 +186,7 @@ class TetrisGymEnv(gym.Env): # it inherits from gym.Env so we must implement __i
         
         stacked = np.stack([board, piece_channel], axis=0)
 
-        return stacked
+        return stacked.astype(np.float32)
 
     def _normalize_heuristics(self, heur:np.ndarray) -> np.ndarray:
         max_agg = BOARD_HEIGHT*BOARD_WIDTH # max value for aggregate height
@@ -202,13 +223,21 @@ class TetrisGymEnv(gym.Env): # it inherits from gym.Env so we must implement __i
 
         return board
     
-    def _compute_reward(self, lines_cleared:int, alive:bool) ->float:
+    def _compute_reward(self, lines_cleared:int, old_heur, new_heur, alive:bool) ->float:
         reward=0.0
         if(lines_cleared>0):
             reward+=self.lines_cleared_reward*(2**lines_cleared) 
             # exponential reward for clearing multiple lines at once
-        reward+=self.step_penalty
-        if not alive:
+        
+        delta_height = new_heur[0] - old_heur[0]
+        delta_holes  = new_heur[1] - old_heur[1]
+        delta_bump   = new_heur[2] - old_heur[2]
+
+        reward += -0.10 * delta_height
+        reward += -0.30 * delta_holes        # holes must be punished strongly
+        reward += -0.02 * delta_bump
+
+        if not alive :
             reward+=self.death_penalty
         return float(reward)
     
