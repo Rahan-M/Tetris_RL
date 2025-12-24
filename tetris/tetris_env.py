@@ -36,8 +36,8 @@ class TetrisGymEnv(gym.Env): # it inherits from gym.Env so we must implement __i
         self.max_steps = 500
         self.current_steps = 0
 
-        # action space: 4 discrete actions
-        self.action_space = spaces.Discrete(4)
+        # action space: 5 discrete actions
+        self.action_space = spaces.Discrete(5)
 
         max_agg = BOARD_HEIGHT*BOARD_WIDTH # max value for aggregate height
         max_holes = BOARD_HEIGHT*BOARD_WIDTH # max value for number of holes
@@ -95,7 +95,8 @@ class TetrisGymEnv(gym.Env): # it inherits from gym.Env so we must implement __i
                 0 -> move_left()
                 1 -> move_right()
                 2 -> rotate_piece()
-                3 -> hard_drop() (locks piece, returns  (lines_cleared, alive) )
+                3-> do nothing, simply go down one row
+                4 -> hard_drop() (locks piece, returns  (lines_cleared, alive) )
             Returns: obs, reward, done, info
         """
 
@@ -106,16 +107,18 @@ class TetrisGymEnv(gym.Env): # it inherits from gym.Env so we must implement __i
         lines_cleared=0
         alive=True
 
-        if action == 0:
-            _ = self.engine.move_left()
-        elif action == 1:
-            _ = self.engine.move_right()
-        elif action == 2:
-            _ = self.engine.rotate_piece()
-        elif action == 3:
+        if action == 4:
             lines_cleared, alive = self.engine.hard_drop()
         else:
-            raise ValueError("Unknown action")
+            if action == 0:
+                _ = self.engine.move_left()
+            elif action == 1:
+                _ = self.engine.move_right()
+            elif action == 2:
+                _ = self.engine.rotate_piece()
+                
+            lines_cleared, alive=self.engine.go_down()
+            
         
         self.current_steps+=1
 
@@ -232,9 +235,9 @@ class TetrisGymEnv(gym.Env): # it inherits from gym.Env so we must implement __i
         delta_holes  = new_heur[1] - old_heur[1]
         delta_bump   = new_heur[2] - old_heur[2]
 
-        reward += -0.10 * delta_height
-        reward += -0.30 * delta_holes        # holes must be punished strongly
-        reward += -0.02 * delta_bump
+        # reward += self.height_weight * delta_height
+        reward += self.hole_weight * delta_holes        # holes must be punished strongly
+        # reward += self.bump_weight * delta_bump
 
         if not alive :
             reward+=self.death_penalty

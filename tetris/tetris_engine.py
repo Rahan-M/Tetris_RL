@@ -118,17 +118,13 @@ class TetrisEngine:
     def go_down(self):
         matrix=self.get_current_matrix()
 
-        if self.check_collision(matrix, self.piece_x, self.piece_y): # if next drop will cause a collision, stop
-            return 0, False
+        if not self.check_collision(matrix, self.piece_x, self.piece_y+1): # if next drop will cause a collision, stop
+            self.piece_y+=1 # update position
+            return 0, True
         
-        self.piece_y+=1 # update position
-        if self.check_collision(matrix, self.piece_x, self.piece_y+1): # if next drop will cause a collision, stop
-            lines_cleared=self.lock_piece()
-            alive=self.spawn_piece()
-            return lines_cleared, alive
-
-
-        return 0, True
+        lines_cleared=self.lock_piece()
+        alive=self.spawn_piece()
+        return lines_cleared, alive
 
     def hard_drop(self):
         matrix=self.get_current_matrix()
