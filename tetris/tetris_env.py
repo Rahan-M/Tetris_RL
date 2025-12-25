@@ -13,6 +13,7 @@ class TetrisGymEnv(gym.Env): # it inherits from gym.Env so we must implement __i
         observation_type: str="heuristics", # Controls what state the agent receives 
         lines_cleared_reward: float = 10.0, 
         death_penalty: float=-10.0,
+        survival_reward: float=0.01,
         normalize: bool=True, # whether to scale heuristics to [0, 1]
         height_weight = -0.10,
         hole_weight = -0.30,
@@ -29,6 +30,7 @@ class TetrisGymEnv(gym.Env): # it inherits from gym.Env so we must implement __i
         self.observation_type = observation_type
         self.lines_cleared_reward = lines_cleared_reward
         self.death_penalty = death_penalty
+        self.survival_reward=survival_reward
         self.height_weight = height_weight
         self.hole_weight = hole_weight
         self.bump_weight = bump_weight
@@ -124,10 +126,9 @@ class TetrisGymEnv(gym.Env): # it inherits from gym.Env so we must implement __i
 
         new_heur=self.engine.get_heuristics()
 
-        if action == 3:
-            reward = self._compute_reward(lines_cleared, old_heur, new_heur, alive)
-        else:
-            reward = 0.0
+        reward = self._compute_reward(lines_cleared, old_heur, new_heur, alive)
+        if alive:
+          reward+=self.survival_reward
 
         obs=self._get_obs()
         terminated = not alive
@@ -235,9 +236,9 @@ class TetrisGymEnv(gym.Env): # it inherits from gym.Env so we must implement __i
         delta_holes  = new_heur[1] - old_heur[1]
         delta_bump   = new_heur[2] - old_heur[2]
 
-        # reward += self.height_weight * delta_height
+        reward += self.height_weight * delta_height
         reward += self.hole_weight * delta_holes        # holes must be punished strongly
-        # reward += self.bump_weight * delta_bump
+        reward += self.bump_weight * delta_bump
 
         if not alive :
             reward+=self.death_penalty
@@ -251,10 +252,10 @@ class TetrisGymEnv(gym.Env): # it inherits from gym.Env so we must implement __i
         for row in board:
             for entry in row:
                 if entry==0:
-                    print("# ", end="")
+                    print("#", end="")
                 else:
-                    print(". ", end="")
-            print("\n")
+                    print(".", end="")
+            print("")
         print("-"*BOARD_WIDTH)
         print("\n")
 
