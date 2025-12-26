@@ -35,11 +35,19 @@ We also feed it the three heuristics mentioned above
 
 I have tried training a model on several times, 
 at first there was no gravity, so you move left or right and rotate the piece as many times as you want and then hard drop
-version1: Death penalty was a 1000 times greater than step penalty (10 and 0.01). So the model will never drop and keep playing with the piece infinitely
-version2: Added max steps, to avoid infinity. But model will make 500 steps with no drop
-version3: Started changing step penalty, if it was too great, model will die asap to avoid it, if it was too little model will never drop a piece. Couldn't find a suitable middle ground
-version4: Introduced penalties for changing the heuristics in a negative manner, still stuck at the dilemma from previous version
+version 1: Death penalty was a 1000 times greater than step penalty (10 and 0.01). So the model will never drop and keep playing with the piece infinitely
+result 1: training will get stuck at evaluation
+version 2: Added max steps, to avoid infinity. 
+result 2: But model will make 500 steps with no drop
+version 3: Started changing step penalty
+result 3: if it was too great, model will die asap to avoid it, if it was too little model will never drop a piece. Couldn't find a suitable middle ground
+version4: Introduced penalties for changing the heuristics in a negative manner, 
+result 4: still stuck at the dilemma from previous version
 
 version 5: Added gravity, so pieces fall one level after each move. Avoids infinite loops by guranteeing death. Removed step penalty and penalty for incresing aggregate height. (V3)
 result 5: Model survives for around 250-300 steps but doesn't clear any line
-version 6: Reintroduced aggregate height penalty. Introduced a survival reward of 0.01
+version 6: Reintroduced aggregate height penalty. Introduced a survival reward of 0.01 (V4)
+result 6: Same as result 5, but model seems close to clearing lines
+version 7: incrase exploration fraction from 0.3 to 0.5 and exploration_final_eps to 0.05 from 0.02 (V5)
+result 7: same as 6
+version 8: tuned many of the parameters of the model and train on 3M timesteps (V6)
