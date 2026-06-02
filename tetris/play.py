@@ -41,7 +41,7 @@ def displayBoard(engine: TetrisEngine):
     # print(BOARD_WIDTH)
 
 def displayMenu():
-    print("1. Move Left\n2. Move Right\n3. Rotate Piece\n4. Continue\n5. Hard Drop\n6. Controls Drop Piece\n7. Exit")
+    print("1. Move Left\n2. Move Right\n3. Rotate Piece\n4. Continue\n5. Hard Drop\n6. Controls\n7. Exit")
 
 engine=TetrisEngine()
 engine.reset_board()

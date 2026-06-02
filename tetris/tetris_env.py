@@ -12,8 +12,7 @@ class TetrisGymEnv(gym.Env): # it inherits from gym.Env so we must implement __i
         self,
         observation_type: str="heuristics", # Controls what state the agent receives 
         lines_cleared_reward: float = 10.0, 
-        death_penalty: float=-10.0,
-        survival_reward: float=0.01,
+        death_penalty: float=-100.0,
         normalize: bool=True, # whether to scale heuristics to [0, 1]
         height_weight = -0.10,
         hole_weight = -0.30,
@@ -30,12 +29,11 @@ class TetrisGymEnv(gym.Env): # it inherits from gym.Env so we must implement __i
         self.observation_type = observation_type
         self.lines_cleared_reward = lines_cleared_reward
         self.death_penalty = death_penalty
-        self.survival_reward=survival_reward
         self.height_weight = height_weight
         self.hole_weight = hole_weight
         self.bump_weight = bump_weight
         self.normalize = normalize
-        self.max_steps = 500
+        self.max_steps = 100_000
         self.current_steps = 0
 
         # action space: 5 discrete actions
@@ -127,8 +125,6 @@ class TetrisGymEnv(gym.Env): # it inherits from gym.Env so we must implement __i
         new_heur=self.engine.get_heuristics()
 
         reward = self._compute_reward(lines_cleared, old_heur, new_heur, alive)
-        if alive:
-          reward+=self.survival_reward
 
         obs=self._get_obs()
         terminated = not alive
@@ -194,7 +190,7 @@ class TetrisGymEnv(gym.Env): # it inherits from gym.Env so we must implement __i
     def _normalize_heuristics(self, heur:np.ndarray) -> np.ndarray:
         max_agg = BOARD_HEIGHT*BOARD_WIDTH # max value for aggregate height
         max_holes = BOARD_HEIGHT*BOARD_WIDTH/2 # max value for number of holes
-        max_bump = BOARD_HEIGHT*BOARD_WIDTH # A vapiece_wo_board=self._board_with_piece().flatten().astype(np.float32)23lue greater than max value of bumpiness
+        max_bump = BOARD_HEIGHT*BOARD_WIDTH # max value of bumpiness
 
         heur=np.array([heur[0]/max_agg, heur[1]/max_holes, heur[2]/max_bump], dtype=np.float32)
         return heur

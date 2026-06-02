@@ -51,3 +51,13 @@ result 6: Same as result 5, but model seems close to clearing lines
 version 7: incrase exploration fraction from 0.3 to 0.5 and exploration_final_eps to 0.05 from 0.02 (V5)
 result 7: same as 6
 version 8: tuned many of the parameters of the model and train on 3M timesteps (V6)
+result: Not much change
+
+Switched to dueling dqn
+version 1: I also removed max steps, we can no longer encounter infinite loops because fo gravity
+result: Not too big of a change, reward aroun -32 to -37
+version 2: I removed vecnormalize for observations since the environment was already doing that, and removed survival rewards and increased death penalty drastically to -100
+version3: Trained to 3M timesteps
+result: Survives for 200+ steps no line clearing
+version 4: 300k timesteps with custom per
+result: shows promise, very low negative reward, like -8 instead of -37 and all. They seem to minimize bumpiness,
